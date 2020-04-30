@@ -1780,6 +1780,31 @@ fn generate_node(gen: &GeneratorContext,
                                             vec!(Line(params.phantom_data_type.clone())) } else { vec!() } ))),
                                           Line("}".to_string()))));
 
+            if is_generic {
+                // TODO
+            } else {
+                mod_interior.push(Branch(vec![
+                    Line("impl <_S: Server + 'static> ::capnp::capability::IntoClient<Client> for ToClient<_S> {".to_string()),
+                    Indent(Box::new(Branch(vec![
+                        Line("type ServerDispatch = ServerDispatch<_S>;".to_string()),
+                        Line("fn server_dispatch(self) -> ServerDispatch<_S> { ServerDispatch { server: ::std::boxed::Box::new(self.u) } }".to_string()),
+                    ]))),
+                    Line("}".to_string()),
+                ]));
+            }
+
+            mod_interior.push(
+                Branch(vec![
+                    (if is_generic {
+                        Line(format!("impl <{}, _T: Server{}> ::std::ops::Deref for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
+                    } else {
+                        Line("impl <_T: Server> ::std::ops::Deref for ServerDispatch<_T> {".to_string())
+                    }),
+                    Indent(Box::new(Line("type Target = _T;".to_string()))),
+                    Indent(Box::new(Line("fn deref(&self) -> &_T { &self.server}".to_string()))),
+                    Line("}".to_string()),
+                    ]));
+
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {

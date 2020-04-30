@@ -167,7 +167,7 @@ impl calculator::Server for CalculatorImpl {
         Promise::from_future(async move {
             let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
             results.get().set_value(
-                calculator::value::ToClient::new(ValueImpl::new(v)).into_client::<::capnp_rpc::Server>());
+                capnp_rpc::new_client(calculator::value::ToClient::new(ValueImpl::new(v))));
             Ok(())
         })
     }
@@ -177,10 +177,10 @@ impl calculator::Server for CalculatorImpl {
                     -> Promise<(), Error>
     {
         results.get().set_func(
-            calculator::function::ToClient::new(
-                pry!(FunctionImpl::new(pry!(params.get()).get_param_count() as u32,
-                                       pry!(pry!(params.get()).get_body()))))
-                .into_client::<::capnp_rpc::Server>());
+            capnp_rpc::new_client(
+                calculator::function::ToClient::new(
+                    pry!(FunctionImpl::new(pry!(params.get()).get_param_count() as u32,
+                                           pry!(pry!(params.get()).get_body()))))));
         Promise::ok(())
     }
     fn get_operator(&mut self,
@@ -190,7 +190,7 @@ impl calculator::Server for CalculatorImpl {
     {
         let op = pry!(pry!(params.get()).get_op());
         results.get().set_func(
-            calculator::function::ToClient::new(OperatorImpl {op : op}).into_client::<::capnp_rpc::Server>());
+            capnp_rpc::new_client(calculator::function::ToClient::new(OperatorImpl {op : op})));
         Promise::ok(())
     }
 }
@@ -208,7 +208,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::task::LocalSet::new().run_until(async move {
         let mut listener = tokio::net::TcpListener::bind(&addr).await?;
         let calc =
-            calculator::ToClient::new(CalculatorImpl).into_client::<::capnp_rpc::Server>();
+            capnp_rpc::new_client(calculator::ToClient::new(CalculatorImpl));
 
         loop {
             let (socket, _) = listener.accept().await?;

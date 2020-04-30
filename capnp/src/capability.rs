@@ -251,3 +251,9 @@ pub trait Server {
                      -> Promise<(), Error>;
 }
 
+pub trait IntoClient<C> where C: FromClientHook {
+    // Deref doesn't quite work yet here because of the ToClient newtype wrapper...
+    type ServerDispatch: Server + /* std::ops::Deref<Target=Self> + */ 'static;
+
+    fn server_dispatch(self) -> Self::ServerDispatch;
+}
